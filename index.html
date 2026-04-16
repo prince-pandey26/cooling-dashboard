@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cooling System Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .card-unit {
+            font-size: 1rem;
+            color: #888;
+            margin-left: 5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-ok {
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+            border: 1px solid rgba(46, 213, 115, 0.3);
+        }
+
+        .status-warning {
+            background: rgba(255, 165, 2, 0.2);
+            color: #ffa502;
+            border: 1px solid rgba(255, 165, 2, 0.3);
+        }
+
+        .status-error {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #fff;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+        .error-message {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cooling System Dashboard</h1>
+
+        <div id="error-message" class="error-message"></div>
+
+        <div class="cards-container">
+            <div class="card">
+                <div class="card-label">Temp In</div>
+                <div class="card-value">
+                    <span id="temp-in">--</span>
+                    <span class="card-unit">°C</span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-label">Temp Out</div>
+                <div class="card-value">
+                    <span id="temp-out">--</span>
+                    <span class="card-unit">°C</span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-label">Status</div>
+                <div id="status-container">
+                    <span id="status" class="status-badge">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Temperature Trends</div>
+            <div class="chart-wrapper">
+                <canvas id="tempChart"></canvas>
+            </div>
+        </div>
+
+        <div class="last-updated">
+            Last updated: <span id="last-updated">--</span>
+        </div>
+    </div>
+
+    <script>
+        // API endpoint
+        const API_URL = 'http://127.0.0.1:5000/all';
+
+        // Chart instance
+        let tempChart = null;
+
+        // DOM elements
+        const tempInEl = document.getElementById('temp-in');
+        const tempOutEl = document.getElementById('temp-out');
+        const statusEl = document.getElementById('status');
+        const errorEl = document.getElementById('error-message');
+        const lastUpdatedEl = document.getElementById('last-updated');
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('tempChart').getContext('2d');
+
+            tempChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Temp In',
+                            data: [],
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Temp Out',
+                            data: [],
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e0e0e0',
+                                font: {
+                                    size: 14
+                                },
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#888',
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#888',
+                                callback: function(value) {
+                                    return value + '°C';
+                                }
+                            },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Format timestamp for display
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString();
+        }
+
+        // Update status display
+        function updateStatus(status) {
+            statusEl.textContent = status || 'UNKNOWN';
+            statusEl.className = 'status-badge';
+
+            if (status === 'OK') {
+                statusEl.classList.add('status-ok');
+            } else if (status === 'WARNING') {
+                statusEl.classList.add('status-warning');
+            } else if (status === 'ERROR') {
+                statusEl.classList.add('status-error');
+            } else {
+                statusEl.classList.add('status-error');
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
+        }
+
+        // Hide error message
+        function hideError() {
+            errorEl.classList.remove('visible');
+        }
+
+        // Fetch and update data
+        async function fetchData() {
+            try {
+                const response = await fetch(API_URL);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Check if data exists and is an array
+                if (!result.data || !Array.isArray(result.data) || result.data.length === 0) {
+                    throw new Error('No data available from API');
+                }
+
+                hideError();
+
+                // Get latest data point
+                const latest = result.data[result.data.length - 1];
+
+                // Update card values
+                tempInEl.textContent = latest.chiller_temp_in?.toFixed(1) || '--';
+                tempOutEl.textContent = latest.chiller_temp_out?.toFixed(1) || '--';
+                updateStatus(latest.status);
+
+                // Update last updated time
+                lastUpdatedEl.textContent = new Date().toLocaleString();
+
+                // Update chart
+                const labels = result.data.map(item => formatTimestamp(item.timestamp));
+                const tempInData = result.data.map(item => item.chiller_temp_in);
+                const tempOutData = result.data.map(item => item.chiller_temp_out);
+
+                tempChart.data.labels = labels;
+                tempChart.data.datasets[0].data = tempInData;
+                tempChart.data.datasets[1].data = tempOutData;
+                tempChart.update('none'); // 'none' mode for smooth updates
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showError(`Failed to fetch data: ${error.message}`);
+            }
+        }
+
+        // Initialize
+        function init() {
+            initChart();
+            fetchData();
+
+            // Auto-update every 5 seconds
+            setInterval(fetchData, 5000);
+        }
+
+        // Start when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
