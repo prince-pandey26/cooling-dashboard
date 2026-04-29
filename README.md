@@ -77,5 +77,5 @@ This project consists of three main components:
 
 ---
 
-## 🔗 Author
+## Author
 Prince Pandey
