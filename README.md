@@ -55,10 +55,10 @@ This project consists of three main components:
    python app.py
 
 3. Run the frontend:
-   python -m http.server 8080
+   python -m http.server 5001
 
 4. Open in browser:
-   http://localhost:8080
+   http://localhost:5001
 
 ---
 
